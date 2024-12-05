@@ -1,0 +1,71 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "mongodb"
+    url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+    STUDENT
+    FACULTY
+}
+
+enum PostType {
+    OFFICIAL
+    UNOFFICIAL
+}
+
+model User {
+    id         String    @id @default(auto()) @map("_id") @db.ObjectId
+    email      String    @unique
+    password   String
+    name       String
+    role       UserRole
+    enr        String    @default("")
+    department String?
+    posts      Post[] // Relation to Post
+    comments   Comment[] // Relation to Comment
+    upvotes    Upvote[] // Relation to Upvotes (tracking user upvotes)
+    createdAt  DateTime  @default(now())
+    updatedAt  DateTime  @updatedAt
+}
+
+model Post {
+    id         String    @id @default(auto()) @map("_id") @db.ObjectId
+    title      String
+    content    String
+    department String
+    imageUrl   String?
+    createdAt  DateTime  @default(now())
+    updatedAt  DateTime  @updatedAt
+    postedBy   User      @relation(fields: [postedById], references: [id])
+    postedById String    @db.ObjectId
+    postType   PostType
+    upvotes    Int       @default(0) // Total number of upvotes (tracked separately in the Upvote model)
+    comments   Comment[]
+    comment Int @default(0)
+    upvotedBy  Upvote[] // Relation to users who have upvoted this post
+}
+
+model Comment {
+    id        String   @id @default(auto()) @map("_id") @db.ObjectId
+    name      String 
+    comment   String 
+    createdAt DateTime @default(now()) 
+    post      Post     @relation(fields: [postId], references: [id])
+    postId    String   @db.ObjectId
+    User      User?    @relation(fields: [userId], references: [id])
+    userId    String?  @db.ObjectId
+}
+
+model Upvote {
+    id     String @id @default(auto()) @map("_id") @db.ObjectId
+    user   User   @relation(fields: [userId], references: [id])
+    userId String @db.ObjectId
+    post   Post   @relation(fields: [postId], references: [id])
+    postId String @db.ObjectId
+
+    @@unique([userId, postId]) // Ensure that a user can only upvote a post once
+}
